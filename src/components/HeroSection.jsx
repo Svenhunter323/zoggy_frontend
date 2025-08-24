@@ -1,104 +1,63 @@
-import React, { useState } from 'react'
-import { Mail, Users, CheckCircle } from 'lucide-react'
-import { validateEmail } from '../utils/userUtils'
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Gift } from 'lucide-react'
+import Button from './Button'
 
-const HeroSection = ({ totalUsers, onSignup, user }) => {
-  const [email, setEmail] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setEmailError('')
-
-    if (!email) {
-      setEmailError('Email is required')
-      return
-    }
-
-    if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address')
-      return
-    }
-
-    setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      onSignup(email)
-      setIsLoading(false)
-    }, 1000)
-  }
-
+const HeroSection = ({ onJoinWaitlist }) => {
   return (
-    <section className="min-h-screen gradient-bg flex items-center justify-center px-6 py-12">
+    <section className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center px-6 py-12">
       <div className="max-w-4xl mx-auto text-center">
-        <div className="mb-8">
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-800 mb-6 leading-tight">
-            Get Early Access &<br />
-            <span className="text-gradient">
-              Unlock Daily Rewards
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="mb-8"
+        >
+          <div className="w-32 h-32 mx-auto mb-8 relative">
+            <motion.div
+              animate={{ 
+                rotateY: [0, 360],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="w-full h-full bg-gradient-to-br from-gold to-yellow-500 rounded-2xl shadow-2xl flex items-center justify-center"
+            >
+              <Gift className="w-16 h-16 text-gray-900 drop-shadow-lg" />
+            </motion.div>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            Open Your Daily Chest.
+            <br />
+            <span className="bg-gradient-to-r from-gold to-yellow-400 bg-clip-text text-transparent">
+              Win up to $10,000.
             </span>
           </h1>
-          <p className="text-2xl md:text-3xl text-gray-600 mb-8 font-semibold">
-            Win up to <span className="text-gold-500 font-bold">$10,000</span>
+          
+          <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
+            Join thousands of players opening daily chests and winning real money. 
+            Get early access and start earning today.
           </p>
-        </div>
+        </motion.div>
 
-        {!user ? (
-          <div className="card max-w-md mx-auto mb-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`input-field pl-10 ${emailError ? 'border-red-500 ring-red-500' : ''}`}
-                    required
-                  />
-                </div>
-                {emailError && (
-                  <p className="text-red-500 text-sm mt-1 text-left">{emailError}</p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn-primary w-full text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Joining...</span>
-                  </div>
-                ) : (
-                  'Join Waitlist'
-                )}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="card max-w-md mx-auto mb-8 bg-success-50 border-success-200">
-            <div className="flex items-center justify-center space-x-2 text-success-700 mb-4">
-              <CheckCircle className="w-6 h-6" />
-              <span className="font-semibold">You're on the waitlist!</span>
-            </div>
-            <p className="text-success-600">
-              Position #{user.position.toLocaleString()}
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-center justify-center space-x-2 text-gray-600">
-          <Users className="w-5 h-5" />
-          <span className="text-lg font-semibold">
-            {totalUsers.toLocaleString()} people in line
-          </span>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={onJoinWaitlist}
+            className="text-xl px-12 py-6"
+          >
+            Join Waitlist
+          </Button>
+        </motion.div>
       </div>
     </section>
   )

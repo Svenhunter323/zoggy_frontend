@@ -1,104 +1,122 @@
-import React, { useState, useEffect } from 'react'
-import { Gift, Clock } from 'lucide-react'
-import { canOpenChest, getNextChestTime } from '../utils/userUtils'
+import React, { useState } from 'react'
+import { Gift, Clock, Lock } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useAuth } from '../contexts/AuthContext'
+import { canOpenChest, getNextChestTime } from '../utils/time'
+import { chestAPI } from '../api/endpoints'
+import Button from './Button'
+import Card from './Card'
+import Countdown from './Countdown'
 import ChestModal from './ChestModal'
 import TelegramModal from './TelegramModal'
+import { useToast } from './Toast'
 
-const DailyChest = ({ user, onOpenChest }) => {
+const DailyChest = () => {
+  const { user, fetchUser } = useAuth()
+  const { showToast } = useToast()
   const [showChestModal, setShowChestModal] = useState(false)
   const [showTelegramModal, setShowTelegramModal] = useState(false)
-  const [countdown, setCountdown] = useState('')
+  const [isOpening, setIsOpening] = useState(false)
 
-  const canOpen = canOpenChest(user?.lastChestOpen)
+  const canOpen = canOpenChest(user?.lastChestOpenAt)
+  const nextChestTime = getNextChestTime(user?.lastChestOpenAt)
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(getNextChestTime(user?.lastChestOpen))
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [user?.lastChestOpen])
-
-  const handleOpenChest = () => {
-    if (!user?.hasJoinedTelegram) {
+  const handleOpenChest = async () => {
+    if (!user?.telegramVerified) {
       setShowTelegramModal(true)
       return
     }
-    
-    if (canOpen) {
-      setShowChestModal(true)
+
+    if (!canOpen) {
+      showToast('You can only open one chest per day!', 'warning')
+      return
     }
-  }
 
-  const handleChestOpened = () => {
-    setShowChestModal(false)
-    onOpenChest()
-  }
-
-  const handleJoinTelegram = () => {
-    setShowTelegramModal(false)
-    // Update user's telegram status
-    if (user) {
-      user.hasJoinedTelegram = true
+    try {
+      setIsOpening(true)
+      const response = await chestAPI.open()
+      setShowChestModal(true)
+      await fetchUser() // Refresh user data
+    } catch (error) {
+      console.error('Failed to open chest:', error)
+      showToast('Failed to open chest. Please try again.', 'error')
+    } finally {
+      setIsOpening(false)
     }
   }
 
   return (
-    <section className="py-20 px-6 bg-gray-50">
-      <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Daily Chest</h2>
-        <p className="text-xl text-gray-600 mb-12">Open your daily chest to win amazing prizes!</p>
+    <>
+      <Card className="max-w-md mx-auto text-center bg-gradient-to-br from-gold/10 to-yellow-600/10 border-gold/30">
+        <h3 className="text-2xl font-bold text-white mb-6">Daily Chest</h3>
         
-        <div className="card max-w-md mx-auto bg-gradient-to-br from-gold-50 to-gold-100 border-gold-200">
-          <div className="w-32 h-32 mx-auto mb-6 relative">
-            <div className="w-full h-full bg-gradient-to-br from-gold-400 to-gold-600 rounded-2xl shadow-2xl animate-float flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-              <Gift className="w-16 h-16 text-white drop-shadow-lg" />
-            </div>
+        <div className="w-32 h-32 mx-auto mb-6 relative">
+          <motion.div
+            animate={canOpen ? { 
+              rotateY: [0, 10, -10, 0],
+              scale: [1, 1.05, 1]
+            } : {}}
+            transition={{ 
+              duration: 2,
+              repeat: canOpen ? Infinity : 0,
+              ease: "easeInOut"
+            }}
+            className={`w-full h-full bg-gradient-to-br from-gold to-yellow-500 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300 ${
+              !canOpen ? 'opacity-60' : ''
+            }`}
+          >
+            <Gift className="w-16 h-16 text-gray-900 drop-shadow-lg" />
             {!canOpen && (
               <div className="absolute inset-0 bg-gray-900 bg-opacity-50 rounded-2xl flex items-center justify-center">
-                <Clock className="w-8 h-8 text-white" />
+                <Lock className="w-8 h-8 text-white" />
               </div>
             )}
-          </div>
-          
-          {canOpen ? (
-            <button
-              onClick={handleOpenChest}
-              className="btn-success text-lg px-8 py-4 w-full"
-            >
-              Open Case
-            </button>
-          ) : (
-            <div className="text-center">
-              <button
-                disabled
-                className="btn-secondary opacity-50 cursor-not-allowed text-lg px-8 py-4 w-full mb-4"
-              >
-                Case Opened
-              </button>
-              <div className="flex items-center justify-center space-x-2 text-gray-600">
-                <Clock className="w-5 h-5" />
-                <span className="font-mono text-lg">Next case in {countdown}</span>
-              </div>
-            </div>
-          )}
+          </motion.div>
         </div>
 
-        {showChestModal && (
-          <ChestModal
-            onClose={() => setShowChestModal(false)}
-            onChestOpened={handleChestOpened}
-          />
+        {canOpen ? (
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleOpenChest}
+            loading={isOpening}
+            className="w-full"
+          >
+            {isOpening ? 'Opening...' : 'Open Chest'}
+          </Button>
+        ) : (
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              size="lg"
+              disabled
+              className="w-full opacity-50 cursor-not-allowed"
+            >
+              Chest Opened
+            </Button>
+            {nextChestTime && (
+              <Countdown 
+                targetDate={nextChestTime}
+                label="Next chest in"
+                className="justify-center"
+              />
+            )}
+          </div>
         )}
+      </Card>
 
-        {showTelegramModal && (
-          <TelegramModal
-            onClose={() => setShowTelegramModal(false)}
-            onJoinTelegram={handleJoinTelegram}
-          />
-        )}
-      </div>
-    </section>
+      {showChestModal && (
+        <ChestModal
+          onClose={() => setShowChestModal(false)}
+        />
+      )}
+
+      {showTelegramModal && (
+        <TelegramModal
+          onClose={() => setShowTelegramModal(false)}
+        />
+      )}
+    </>
   )
 }
 
